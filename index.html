@@ -3,64 +3,164 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TopUpKu — Top Up Game</title>
+<title>Top Up Game - Cepat & Murah</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="header">
-  <div class="brand">TopUp<span>Ku</span></div>
-  <nav><a href="#store">Store</a><a href="#orders">Pesanan</a><a href="admin.html">Admin</a></nav>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-name">Top Up Game</div>
+      <div class="logo-sub">Cepat • Murah • Aman</div>
+    </div>
+  </div>
 </header>
 
-<main>
 <section class="hero">
-  <div>
-    <p class="eyebrow">TOP UP GAME ONLINE</p>
-    <h1>Top up game favoritmu<br><span>cepat & sederhana.</span></h1>
-    <p class="hero-text">Pilih game, nominal, masukkan ID, lalu upload bukti transfer. Admin akan memverifikasi pesanan secara manual.</p>
-    <a class="btn primary" href="#store">Mulai Top Up</a>
-  </div>
-  <div class="hero-card">
-    <div class="orb">◆</div>
-    <strong>Proses Manual</strong>
-    <small>Pesanan diverifikasi admin</small>
-  </div>
+  <h1>Top Up Game Favoritmu</h1>
+  <p>Proses instan, harga bersahabat, pembayaran mudah</p>
 </section>
 
-<section id="store" class="section">
-  <div class="section-title"><div><p class="eyebrow">STORE</p><h2>Pilih Game</h2></div><input id="searchGame" class="search" placeholder="Cari game..."></div>
-  <div id="games" class="game-grid"></div>
-</section>
+<main>
+  <div class="section-head">
+    <h2>PILIH GAME</h2>
+    <input type="text" id="searchInput" placeholder="🔍 Cari game...">
+  </div>
 
-<section id="orders" class="section">
-  <div class="section-title"><div><p class="eyebrow">CEK PESANAN</p><h2>Pesanan Terakhir</h2></div></div>
-  <div id="orderList" class="orders"></div>
-</section>
+  <div class="games" id="games">
+    <div class="loading">Memuat game...</div>
+  </div>
 </main>
 
-<div id="modal" class="modal hidden">
+<!-- ============ MODAL TOP UP ============ -->
+<div class="modal" id="modalTopup">
   <div class="modal-box">
-    <button class="close" onclick="closeModal()">×</button>
-    <p class="eyebrow">FORM TOP UP</p>
-    <h2 id="modalGame">Game</h2>
-    <form id="orderForm">
-      <input type="hidden" id="game">
-      <label>Nominal<select id="nominal" required></select></label>
-      <label>User ID<input id="userId" placeholder="Contoh: 123456789" required></label>
-      <label>Zone ID <span class="muted">(jika ada)</span><input id="zoneId" placeholder="Contoh: 1234"></label>
-      <label>Nama pembeli<input id="buyerName" placeholder="Nama kamu" required></label>
-      <label>WhatsApp<input id="whatsapp" type="tel" placeholder="08xxxxxxxxxx" required></label>
-      <div class="payment-box">
-        <strong>Pembayaran</strong>
-        <p>Transfer ke: <b>Bank / QRIS</b></p>
-        <p class="muted">Contoh demo — ganti data pembayaran di script.js</p>
+    <button class="modal-close" onclick="closeModal('modalTopup')">×</button>
+
+    <div class="modal-head">
+      <div class="modal-game-icon" id="mGameIcon">🎮</div>
+      <div>
+        <div class="modal-game-name" id="mGameName">Game</div>
+        <div class="modal-game-sub" id="mGameSub">Pilih nominal top up</div>
       </div>
-      <label>Bukti transfer<input id="proof" type="file" accept="image/*" required></label>
-      <small class="muted">Demo ini menyimpan data di browser perangkatmu.</small>
-      <button class="btn primary full" type="submit">Kirim Pesanan</button>
-    </form>
+    </div>
+
+    <div class="form-group">
+      <label>User ID <span>*</span></label>
+      <input type="text" id="inUserId" placeholder="Masukkan User ID">
+    </div>
+
+    <div class="form-group" id="zoneGroup">
+      <label id="zoneLabel">Zone ID <span>*</span></label>
+      <input type="text" id="inZone" placeholder="Zone ID">
+    </div>
+
+    <div class="form-group">
+      <label>Kontak (WA/Email) <span>*</span></label>
+      <input type="text" id="inKontak" placeholder="08xxxx atau email">
+    </div>
+
+    <h4 class="sub-title">Pilih Nominal</h4>
+    <div class="produk-list" id="produkList"></div>
+
+    <h4 class="sub-title">Metode Pembayaran</h4>
+    <div class="metode-list" id="metodeList">
+      <label class="metode-item">
+        <input type="radio" name="metode" value="BCA" data-info="1234567890 a.n. TopUp Store">
+        <div>
+          <div class="metode-nama">🏦 Transfer BCA</div>
+          <div class="metode-no">1234567890 a.n. TopUp Store</div>
+        </div>
+      </label>
+      <label class="metode-item">
+        <input type="radio" name="metode" value="DANA" data-info="081234567890 a.n. TopUp Store">
+        <div>
+          <div class="metode-nama">💙 DANA</div>
+          <div class="metode-no">081234567890 a.n. TopUp Store</div>
+        </div>
+      </label>
+      <label class="metode-item">
+        <input type="radio" name="metode" value="OVO" data-info="081234567890 a.n. TopUp Store">
+        <div>
+          <div class="metode-nama">💜 OVO</div>
+          <div class="metode-no">081234567890 a.n. TopUp Store</div>
+        </div>
+      </label>
+      <label class="metode-item">
+        <input type="radio" name="metode" value="QRIS" data-info="Scan QRIS di halaman berikutnya">
+        <div>
+          <div class="metode-nama">📱 QRIS</div>
+          <div class="metode-no">Semua e-wallet</div>
+        </div>
+      </label>
+    </div>
+
+    <div class="total-box">
+      <span>Total Bayar</span>
+      <strong id="mTotal">Rp 0</strong>
+    </div>
+
+    <div class="alert alert-error" id="orderAlert"></div>
+
+    <button class="btn-primary" id="btnOrder" disabled>Lanjut ke Pembayaran</button>
   </div>
 </div>
+
+<!-- ============ MODAL PEMBAYARAN ============ -->
+<div class="modal" id="modalPay">
+  <div class="modal-box">
+    <div class="pay-head">
+      <div class="pay-icon">✓</div>
+      <h3>Pesanan Dibuat!</h3>
+      <p>Transfer sesuai nominal, lalu upload bukti</p>
+    </div>
+
+    <div class="kode-box">
+      <div class="label">KODE PESANAN</div>
+      <div class="kode" id="pKode">—</div>
+    </div>
+
+    <div class="instruksi">
+      <div>Transfer <strong id="pTotal">Rp 0</strong></div>
+      <div>Ke <strong id="pMetode">—</strong></div>
+      <div class="mt-8">Tujuan: <strong id="pTujuan">—</strong></div>
+    </div>
+
+    <h4 class="sub-title">Upload Bukti Transfer</h4>
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">📤</div>
+      <div>Klik untuk pilih gambar<br><small>Max 5MB (JPG/PNG)</small></div>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+    <img id="previewImg" class="preview" hidden>
+
+    <div class="alert alert-error" id="uploadAlert"></div>
+    <button class="btn-primary" id="btnUpload" disabled>Kirim Bukti</button>
+  </div>
+</div>
+
+<!-- ============ MODAL SUKSES ============ -->
+<div class="modal" id="modalSuccess">
+  <div class="modal-box" style="text-align:center;">
+    <div class="pay-icon" style="margin: 0 auto 16px;">🎉</div>
+    <h3>Bukti Terkirim!</h3>
+    <p style="color:var(--muted); margin-bottom:20px;">
+      Pesananmu sedang diverifikasi admin. Simpan kode pesanan:
+    </p>
+    <div class="kode-box">
+      <div class="kode" id="sKode">—</div>
+    </div>
+    <button class="btn-primary" onclick="location.reload()">Buat Pesanan Baru</button>
+  </div>
+</div>
+
+<footer>
+  © 2026 Top Up Game — Powered by Supabase
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 </body>
 </html>
