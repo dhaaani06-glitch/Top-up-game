@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TopUpKu — Top Up Game</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="header">
+  <div class="brand">TopUp<span>Ku</span></div>
+  <nav><a href="#store">Store</a><a href="#orders">Pesanan</a><a href="admin.html">Admin</a></nav>
+</header>
+
+<main>
+<section class="hero">
+  <div>
+    <p class="eyebrow">TOP UP GAME ONLINE</p>
+    <h1>Top up game favoritmu<br><span>cepat & sederhana.</span></h1>
+    <p class="hero-text">Pilih game, nominal, masukkan ID, lalu upload bukti transfer. Admin akan memverifikasi pesanan secara manual.</p>
+    <a class="btn primary" href="#store">Mulai Top Up</a>
+  </div>
+  <div class="hero-card">
+    <div class="orb">◆</div>
+    <strong>Proses Manual</strong>
+    <small>Pesanan diverifikasi admin</small>
+  </div>
+</section>
+
+<section id="store" class="section">
+  <div class="section-title"><div><p class="eyebrow">STORE</p><h2>Pilih Game</h2></div><input id="searchGame" class="search" placeholder="Cari game..."></div>
+  <div id="games" class="game-grid"></div>
+</section>
+
+<section id="orders" class="section">
+  <div class="section-title"><div><p class="eyebrow">CEK PESANAN</p><h2>Pesanan Terakhir</h2></div></div>
+  <div id="orderList" class="orders"></div>
+</section>
+</main>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <button class="close" onclick="closeModal()">×</button>
+    <p class="eyebrow">FORM TOP UP</p>
+    <h2 id="modalGame">Game</h2>
+    <form id="orderForm">
+      <input type="hidden" id="game">
+      <label>Nominal<select id="nominal" required></select></label>
+      <label>User ID<input id="userId" placeholder="Contoh: 123456789" required></label>
+      <label>Zone ID <span class="muted">(jika ada)</span><input id="zoneId" placeholder="Contoh: 1234"></label>
+      <label>Nama pembeli<input id="buyerName" placeholder="Nama kamu" required></label>
+      <label>WhatsApp<input id="whatsapp" type="tel" placeholder="08xxxxxxxxxx" required></label>
+      <div class="payment-box">
+        <strong>Pembayaran</strong>
+        <p>Transfer ke: <b>Bank / QRIS</b></p>
+        <p class="muted">Contoh demo — ganti data pembayaran di script.js</p>
+      </div>
+      <label>Bukti transfer<input id="proof" type="file" accept="image/*" required></label>
+      <small class="muted">Demo ini menyimpan data di browser perangkatmu.</small>
+      <button class="btn primary full" type="submit">Kirim Pesanan</button>
+    </form>
+  </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
