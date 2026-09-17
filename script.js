@@ -1,63 +1,327 @@
-const gamesData=[
- {name:"Mobile Legends",icon:"⚔️",items:[["86 Diamonds",20000],["172 Diamonds",39000],["257 Diamonds",57000],["344 Diamonds",76000],["514 Diamonds",110000]]},
- {name:"Free Fire",icon:"🔥",items:[["70 Diamonds",10000],["140 Diamonds",19000],["355 Diamonds",48000],["720 Diamonds",95000],["1450 Diamonds",185000]]},
- {name:"PUBG Mobile",icon:"🔫",items:[["60 UC",16000],["325 UC",75000],["660 UC",145000],["1800 UC",370000]]},
- {name:"Valorant",icon:"🎯",items:[["125 Points",15000],["420 Points",50000],["700 Points",80000],["1375 Points",150000]]},
- {name:"Genshin Impact",icon:"✨",items:[["60 Genesis",16000],["330 Genesis",79000],["1090 Genesis",245000],["2240 Genesis",490000]]},
- {name:"Honor of Kings",icon:"👑",items:[["80 Tokens",15000],["240 Tokens",45000],["400 Tokens",72000],["800 Tokens",140000]]},
- {name:"Roblox",icon:"🧱",items:[["80 Robux",16000],["400 Robux",70000],["800 Robux",135000],["1700 Robux",275000]]},
- {name:"Honkai: Star Rail",icon:"🚆",items:[["60 Oneiric",16000],["330 Oneiric",79000],["1090 Oneiric",245000],["2240 Oneiric",490000]]}
-];
+// ============================================================
+// KONFIGURASI SUPABASE
+// ============================================================
+const SUPABASE_URL = 'https://jfkppzlitrjvirlqgdgd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impma3BwemxpdHJqdmlybHFnZGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NDIzNTgsImV4cCI6MjEwNTIxODM1OH0.yGpVwdPFlMy2SCfkuShagC-5KZ_ZMV_BhSjOQu0AJdE';
 
-const money=n=>"Rp"+Number(n).toLocaleString("id-ID");
-const getOrders=()=>JSON.parse(localStorage.getItem("topup_orders")||"[]");
-const saveOrders=o=>localStorage.setItem("topup_orders",JSON.stringify(o));
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function renderGames(filter=""){
- const box=document.getElementById("games"); if(!box)return;
- box.innerHTML=gamesData.filter(g=>g.name.toLowerCase().includes(filter.toLowerCase())).map((g,i)=>
- `<div class="game" onclick="openTopup(${i})"><div class="game-icon">${g.icon}</div><h3>${g.name}</h3><p>Mulai ${money(g.items[0][1])}</p></div>`).join("");
+// ============================================================
+// STATE
+// ============================================================
+let games = [];
+let currentGame = null;
+let currentProduk = null;
+let currentMetode = null;
+let currentOrderCode = null;
+let selectedFile = null;
+
+const formatRp = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
+
+// ============================================================
+// LOAD GAMES
+// ============================================================
+async function loadGames() {
+  const box = document.getElementById('games');
+  const { data, error } = await db
+    .from('games')
+    .select('*')
+    .eq('aktif', true)
+    .order('urutan', { ascending: true });
+
+  if (error) {
+    box.innerHTML = `<div class="loading" style="color:#dc2626;">Gagal memuat game: ${error.message}</div>`;
+    return;
+  }
+
+  games = data || [];
+  renderGames(games);
 }
-function openTopup(i){
- const g=gamesData[i]; document.getElementById("modal").classList.remove("hidden");
- document.getElementById("modalGame").textContent=g.name;
- document.getElementById("game").value=g.name;
- document.getElementById("nominal").innerHTML=g.items.map((x)=>`<option value="${x[0]}|${x[1]}">${x[0]} — ${money(x[1])}</option>`).join("");
+
+function renderGames(list) {
+  const box = document.getElementById('games');
+  if (!list.length) {
+    box.innerHTML = '<div class="loading">Tidak ada game ditemukan.</div>';
+    return;
+  }
+  box.innerHTML = list.map((g, i) => `
+    <div class="game" onclick="openTopup('${g.id}')">
+      <div class="game-icon">${g.emoji || '🎮'}</div>
+      <div class="game-name">${g.nama}</div>
+      <div class="game-tag">${g.butuh_zone ? 'Butuh ' + g.label_zone : 'Instan'}</div>
+    </div>
+  `).join('');
 }
-function closeModal(){document.getElementById("modal").classList.add("hidden")}
-document.addEventListener("DOMContentLoaded",()=>{
- renderGames(); renderOrders();
- const search=document.getElementById("searchGame"); if(search)search.oninput=e=>renderGames(e.target.value);
- const form=document.getElementById("orderForm");
- if(form)form.onsubmit=async e=>{
-   e.preventDefault();
-   const file=document.getElementById("proof").files[0];
-   if(!file)return;
-   const reader=new FileReader();
-   reader.onload=()=>{
-    const [nominal,price]=document.getElementById("nominal").value.split("|");
-    const orders=getOrders();
-    orders.unshift({id:"TP"+Date.now().toString().slice(-7),date:new Date().toLocaleString("id-ID"),game:document.getElementById("game").value,nominal,userId:document.getElementById("userId").value,zoneId:document.getElementById("zoneId").value,buyer:document.getElementById("buyerName").value,wa:document.getElementById("whatsapp").value,price:Number(price),proof:reader.result,status:"Menunggu Verifikasi"});
-    saveOrders(orders); form.reset(); closeModal(); renderOrders(); alert("Pesanan berhasil dikirim. Simpan nomor pesanan untuk pengecekan.");
-    location.hash="orders";
-   }; reader.readAsDataURL(file);
- };
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  renderGames(games.filter(g => g.nama.toLowerCase().includes(q)));
 });
-function renderOrders(){
- const box=document.getElementById("orderList");if(!box)return;
- const orders=getOrders();
- box.innerHTML=orders.length?orders.slice(0,10).map(o=>`<div class="order"><div><b>${o.game} — ${o.nominal}</b><br><small>${o.id} · ${o.date}</small></div><span class="status ${o.status==="Terverifikasi"?"success":o.status==="Ditolak"?"rejected":""}">${o.status}</span></div>`).join(""):"<div class='order'>Belum ada pesanan.</div>";
+
+// ============================================================
+// BUKA MODAL TOP UP
+// ============================================================
+async function openTopup(gameId) {
+  currentGame = games.find(g => g.id === gameId);
+  currentProduk = null;
+  currentMetode = null;
+
+  document.getElementById('mGameIcon').textContent = currentGame.emoji || '🎮';
+  document.getElementById('mGameName').textContent = currentGame.nama;
+  document.getElementById('mGameSub').textContent = currentGame.butuh_zone
+    ? 'Masukkan ' + currentGame.label_zone : 'Masukkan User ID';
+
+  // Zone field
+  const zoneGroup = document.getElementById('zoneGroup');
+  if (currentGame.butuh_zone) {
+    zoneGroup.style.display = 'block';
+    document.getElementById('zoneLabel').innerHTML =
+      `${currentGame.label_zone} <span>*</span>`;
+  } else {
+    zoneGroup.style.display = 'none';
+  }
+
+  // Reset
+  document.getElementById('inUserId').value = '';
+  document.getElementById('inZone').value = '';
+  document.getElementById('inKontak').value = '';
+  document.querySelectorAll('input[name="metode"]').forEach(r => r.checked = false);
+  document.querySelectorAll('.metode-item').forEach(m => m.classList.remove('selected'));
+  document.getElementById('orderAlert').classList.remove('show');
+  updateTotal();
+
+  // Load produk
+  const pl = document.getElementById('produkList');
+  pl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#7a86a8;padding:10px;">Memuat...</div>';
+
+  openModal('modalTopup');
+
+  const { data, error } = await db
+    .from('produk')
+    .select('*')
+    .eq('game_id', gameId)
+    .eq('aktif', true)
+    .order('urutan', { ascending: true });
+
+  if (error) {
+    pl.innerHTML = `<div style="grid-column:1/-1;color:#dc2626;padding:10px;">${error.message}</div>`;
+    return;
+  }
+
+  if (!data || !data.length) {
+    pl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#7a86a8;padding:10px;">Belum ada nominal.</div>';
+    return;
+  }
+
+  pl.innerHTML = data.map(p => `
+    <div class="produk-item"
+         data-id="${p.id}"
+         data-nama="${p.nama}"
+         data-harga="${p.harga}"
+         onclick="pilihProduk(this)">
+      <div class="produk-nama">${p.nama}</div>
+      <div class="produk-harga">${formatRp(p.harga)}</div>
+    </div>
+  `).join('');
 }
-function renderAdmin(){
- const box=document.getElementById("adminOrders"),stats=document.getElementById("stats");if(!box)return;
- const orders=getOrders(),pending=orders.filter(x=>x.status==="Menunggu Verifikasi").length,done=orders.filter(x=>x.status==="Terverifikasi").length;
- stats.innerHTML=`<div class="stat">Total Pesanan<b>${orders.length}</b></div><div class="stat">Menunggu<b>${pending}</b></div><div class="stat">Terverifikasi<b>${done}</b></div>`;
- box.innerHTML=orders.length?orders.map(o=>`<article class="admin-order">
- <div class="order-head"><div><b>${o.id}</b><br><strong>${o.game} — ${o.nominal}</strong></div><span class="status ${o.status==="Terverifikasi"?"success":o.status==="Ditolak"?"rejected":""}">${o.status}</span></div>
- <div class="order-info"><div><b>Pembeli</b><br>${o.buyer}</div><div><b>ID / Zone</b><br>${o.userId} / ${o.zoneId||"-"}</div><div><b>Total</b><br>${money(o.price)}<br>${o.wa}</div></div>
- <img class="proof" src="${o.proof}" alt="Bukti transfer">
- ${o.status==="Menunggu Verifikasi"?`<div class="actions"><button class="approve" onclick="updateStatus('${o.id}','Terverifikasi')">✓ Verifikasi</button><button class="reject" onclick="updateStatus('${o.id}','Ditolak')">✕ Tolak</button></div>`:""}
- </article>`).join(""):"<div class='admin-order'>Belum ada pesanan.</div>";
+
+function pilihProduk(el) {
+  document.querySelectorAll('.produk-item').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  currentProduk = {
+    id: el.dataset.id,
+    nama: el.dataset.nama,
+    harga: parseInt(el.dataset.harga)
+  };
+  updateTotal();
 }
-function updateStatus(id,status){const o=getOrders();const x=o.find(v=>v.id===id);if(x){x.status=status;saveOrders(o);renderAdmin();}}
-function clearOrders(){if(confirm("Hapus semua pesanan demo?")){localStorage.removeItem("topup_orders");renderAdmin();}}
+
+document.querySelectorAll('input[name="metode"]').forEach(r => {
+  r.addEventListener('change', (e) => {
+    document.querySelectorAll('.metode-item').forEach(m => m.classList.remove('selected'));
+    e.target.closest('.metode-item').classList.add('selected');
+    currentMetode = {
+      nama: e.target.value,
+      info: e.target.dataset.info
+    };
+    updateTotal();
+  });
+});
+
+['inUserId', 'inZone', 'inKontak'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateTotal);
+});
+
+function updateTotal() {
+  const total = currentProduk ? currentProduk.harga : 0;
+  document.getElementById('mTotal').textContent = formatRp(total);
+
+  const uid = document.getElementById('inUserId').value.trim();
+  const kontak = document.getElementById('inKontak').value.trim();
+  const zone = document.getElementById('inZone').value.trim();
+  const butuhZone = currentGame && currentGame.butuh_zone;
+
+  const valid = uid && kontak && currentProduk && currentMetode && (!butuhZone || zone);
+  document.getElementById('btnOrder').disabled = !valid;
+}
+
+// ============================================================
+// SUBMIT ORDER
+// ============================================================
+function generateKode() {
+  const d = new Date();
+  const ymd = d.getFullYear().toString().slice(-2)
+    + String(d.getMonth() + 1).padStart(2, '0')
+    + String(d.getDate()).padStart(2, '0');
+  const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `ORD-${ymd}-${rand}`;
+}
+
+document.getElementById('btnOrder').addEventListener('click', async () => {
+  const btn = document.getElementById('btnOrder');
+  const alertEl = document.getElementById('orderAlert');
+  alertEl.classList.remove('show');
+
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+
+  const kode = generateKode();
+  const payload = {
+    kode_pesanan: kode,
+    game_id: currentGame.id,
+    produk_id: currentProduk.id,
+    nama_game: currentGame.nama,
+    nama_produk: currentProduk.nama,
+    user_id_game: document.getElementById('inUserId').value.trim(),
+    zone_id: document.getElementById('inZone').value.trim() || null,
+    kontak: document.getElementById('inKontak').value.trim(),
+    harga: currentProduk.harga,
+    metode_bayar: currentMetode.nama
+  };
+
+  const { error } = await db.from('pesanan').insert([payload]);
+
+  if (error) {
+    alertEl.textContent = 'Gagal: ' + error.message;
+    alertEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Lanjut ke Pembayaran';
+    return;
+  }
+
+  currentOrderCode = kode;
+  document.getElementById('pKode').textContent = kode;
+  document.getElementById('pTotal').textContent = formatRp(currentProduk.harga);
+  document.getElementById('pMetode').textContent = currentMetode.nama;
+  document.getElementById('pTujuan').textContent = currentMetode.info;
+
+  closeModal('modalTopup');
+  openModal('modalPay');
+
+  btn.disabled = false;
+  btn.textContent = 'Lanjut ke Pembayaran';
+});
+
+// ============================================================
+// UPLOAD BUKTI
+// ============================================================
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const previewImg = document.getElementById('previewImg');
+const btnUpload = document.getElementById('btnUpload');
+const uploadAlert = document.getElementById('uploadAlert');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  uploadAlert.classList.remove('show');
+
+  if (!file.type.startsWith('image/')) {
+    uploadAlert.textContent = 'File harus gambar (JPG/PNG)';
+    uploadAlert.classList.add('show');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    uploadAlert.textContent = 'Maksimal 5MB';
+    uploadAlert.classList.add('show');
+    return;
+  }
+
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    previewImg.hidden = false;
+  };
+  reader.readAsDataURL(file);
+
+  btnUpload.disabled = false;
+}
+
+btnUpload.addEventListener('click', async () => {
+  if (!selectedFile || !currentOrderCode) return;
+
+  btnUpload.disabled = true;
+  btnUpload.textContent = 'Mengupload...';
+  uploadAlert.classList.remove('show');
+
+  try {
+    const ext = selectedFile.name.split('.').pop();
+    const fileName = `${currentOrderCode}-${Date.now()}.${ext}`;
+
+    const { error: upErr } = await db.storage
+      .from('bukti-transfer')
+      .upload(fileName, selectedFile);
+
+    if (upErr) throw upErr;
+
+    const { data: urlData } = db.storage
+      .from('bukti-transfer')
+      .getPublicUrl(fileName);
+
+    const { data: rpcData, error: rpcErr } = await db.rpc('submit_bukti', {
+      p_kode: currentOrderCode,
+      p_bukti_url: urlData.publicUrl
+    });
+
+    if (rpcErr) throw rpcErr;
+    if (rpcData && rpcData.ok === false) throw new Error(rpcData.message);
+
+    document.getElementById('sKode').textContent = currentOrderCode;
+    closeModal('modalPay');
+    openModal('modalSuccess');
+
+  } catch (err) {
+    uploadAlert.textContent = 'Gagal: ' + err.message;
+    uploadAlert.classList.add('show');
+    btnUpload.disabled = false;
+    btnUpload.textContent = 'Kirim Bukti';
+  }
+});
+
+// ============================================================
+// MODAL HELPER
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => {
+    if (e.target === m) m.classList.remove('show');
+  });
+});
+
+// ============================================================
+// INIT
+// ============================================================
+loadGames();
